@@ -1,0 +1,2476 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PersonaForge Studio — AI Character & Influencer Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif']
+          },
+          colors: {
+            obsidian: '#0c0c10',
+            charcoal: '#14141a',
+            surface: '#1b1b23',
+            surfaceAlt: '#23232e',
+            amberGold: '#f59e0b',
+            amberWarm: '#fbbf24',
+            coralPink: '#fb7185',
+            roseGlow: '#f43f5e'
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      background-color: #0c0c10;
+      color: #f4f4f6;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      overflow-x: hidden;
+    }
+    /* Custom subtle scrollbars */
+    ::-webkit-scrollbar {
+      width: 7px;
+      height: 7px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #101016;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #2b2b38;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #404054;
+    }
+    .pill-btn {
+      transition: all 0.16s ease;
+    }
+    .pill-active {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(251, 113, 133, 0.2));
+      border-color: #fbbf24;
+      color: #fef3c7;
+      box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.35), 0 6px 18px -6px rgba(245, 158, 11, 0.45);
+    }
+    .mode-active {
+      background: linear-gradient(135deg, #f59e0b 0%, #fb7185 100%);
+      color: #0c0c10;
+      font-weight: 700;
+      box-shadow: 0 8px 24px -6px rgba(251, 113, 133, 0.45);
+    }
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.55; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.04); }
+    }
+    .glow-orb {
+      animation: pulseGlow 3.2s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-obsidian text-zinc-100 antialiased selection:bg-amberGold/30 selection:text-amberWarm">
+  <!-- Toast / Status Notification Banner (replaces alert/confirm) -->
+  <div id="toastContainer" class="pointer-events-none fixed bottom-4 right-4 z-50 flex max-w-sm flex-col gap-2"></div>
+
+  <!-- Top Header -->
+  <header class="sticky top-0 z-30 border-b border-white/10 bg-obsidian/90 backdrop-blur-xl">
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
+      <!-- Brand Identity -->
+      <div class="flex items-center gap-3">
+        <div class="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amberGold via-amberWarm to-coralPink text-obsidian shadow-lg shadow-amberGold/20">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3l1.9 4.6L19 9.5l-4.2 3.3L16 18l-4-2.6L8 18l1.2-5.2L5 9.5l5.1-1.9L12 3z" />
+            <circle cx="19" cy="18" r="2.2" fill="currentColor" stroke="none" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base font-extrabold tracking-tight text-white sm:text-lg">PersonaForge Studio</h1>
+            <span class="hidden rounded-full border border-amberGold/30 bg-amberGold/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amberWarm sm:inline-block">Pro Studio</span>
+          </div>
+          <p class="text-xs text-zinc-400">AI character &amp; influencer studio</p>
+        </div>
+      </div>
+
+      <!-- Right Header Controls: Saved Models + Credits -->
+      <div class="flex items-center gap-2.5 sm:gap-3">
+        <button
+          id="openSavedBtn"
+          type="button"
+          class="flex items-center gap-2 rounded-2xl border border-white/15 bg-surface px-3.5 py-2 text-xs font-semibold text-zinc-100 transition hover:border-amberWarm/60 hover:bg-surfaceAlt sm:text-sm"
+        >
+          <svg class="h-4 w-4 text-amberWarm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+          </svg>
+          <span>Saved Models (<span id="savedCountLabel">0</span>)</span>
+        </button>
+
+        <div class="flex items-center gap-2 rounded-2xl border border-amberGold/30 bg-charcoal px-3 py-1.5 shadow-inner">
+          <div class="flex items-center gap-1.5 text-xs font-semibold sm:text-sm">
+            <span class="h-2 w-2 rounded-full bg-amberWarm"></span>
+            <span class="text-zinc-400 hidden sm:inline">Credits:</span>
+            <span id="creditsCountLabel" class="font-bold text-amberWarm">120</span>
+          </div>
+          <button
+            id="refillCreditsBtn"
+            type="button"
+            class="rounded-xl bg-gradient-to-r from-amberGold to-coralPink px-2.5 py-1 text-xs font-bold text-obsidian transition hover:brightness-110 active:scale-95"
+            title="Refill studio credits"
+          >
+            + Refill
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8">
+    <!-- Mode Switcher Bar -->
+    <div class="mb-6 flex flex-col gap-3 rounded-3xl border border-white/10 bg-charcoal p-2 sm:flex-row sm:items-center sm:justify-between">
+      <div class="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:gap-2" role="tablist" aria-label="Studio Mode">
+        <button
+          id="modePhotoBtn"
+          type="button"
+          role="tab"
+          aria-selected="true"
+          data-mode="photo"
+          class="mode-btn mode-active flex items-center justify-center gap-2 rounded-2xl px-3.5 py-2.5 text-xs transition sm:px-4 sm:text-sm"
+        >
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="3" />
+            <circle cx="9" cy="9" r="2" />
+            <path d="M21 15l-5-5L5 21" />
+          </svg>
+          <span>Photo Portrait</span>
+        </button>
+
+        <button
+          id="modeRemixBtn"
+          type="button"
+          role="tab"
+          aria-selected="false"
+          data-mode="remix"
+          class="mode-btn flex items-center justify-center gap-2 rounded-2xl px-3.5 py-2.5 text-xs font-semibold text-zinc-300 transition hover:bg-surface hover:text-white sm:px-4 sm:text-sm"
+        >
+          <svg class="h-4 w-4 text-amberWarm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M16 3h5v5" />
+            <path d="M4 20L21 3" />
+            <path d="M21 16v5h-5" />
+            <path d="M15 15l6 6" />
+            <path d="M4 4l5 5" />
+          </svg>
+          <span>Remix Pose &amp; Scene</span>
+        </button>
+
+        <button
+          id="modeVideoBtn"
+          type="button"
+          role="tab"
+          aria-selected="false"
+          data-mode="video"
+          class="mode-btn flex items-center justify-center gap-2 rounded-2xl px-3.5 py-2.5 text-xs font-semibold text-zinc-300 transition hover:bg-surface hover:text-white sm:px-4 sm:text-sm"
+        >
+          <svg class="h-4 w-4 text-coralPink" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="23 7 16 12 23 17 23 7" />
+            <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+          </svg>
+          <span>AI Video Clip</span>
+        </button>
+      </div>
+
+      <div id="modeHelperBadge" class="px-3 py-1 text-xs text-zinc-400">
+        Photorealistic portraits with natural skin &amp; lens detail
+      </div>
+    </div>
+
+    <!-- 2-Column Desktop Studio Layout -->
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start">
+      <!-- LEFT COLUMN: Attribute Builder Card -->
+      <section class="rounded-3xl border border-white/10 bg-charcoal p-5 shadow-2xl sm:p-6 lg:col-span-7">
+        <!-- Builder Top Header -->
+        <div class="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
+          <div>
+            <h2 class="text-lg font-bold text-white sm:text-xl">Create Your Persona</h2>
+            <p id="builderSubtitle" class="text-xs text-zinc-400 sm:text-sm">Select attributes to craft a lifelike creator or character</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <button
+              id="presetBeachCarBtn"
+              type="button"
+              class="rounded-2xl border border-amberGold/40 bg-amberGold/10 px-3 py-1.5 text-xs font-semibold text-amberWarm transition hover:bg-amberGold/20"
+            >
+              Try "Beach Car Selfie" Preset
+            </button>
+            <button
+              id="resetAllBtn"
+              type="button"
+              class="rounded-2xl border border-white/15 bg-surface px-3 py-1.5 text-xs font-semibold text-zinc-300 transition hover:border-white/30 hover:text-white"
+            >
+              Reset All
+            </button>
+          </div>
+        </div>
+
+        <!-- MODE 1: PHOTO PORTRAIT ATTRIBUTES -->
+        <div id="photoBuilderPanel" class="space-y-5">
+          <div id="photoAttributeGroups" class="space-y-5"></div>
+
+          <!-- Optional Custom Detail Input -->
+          <div class="rounded-2xl border border-white/10 bg-surface/70 p-4">
+            <label for="customPortraitDetail" class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-300">
+              Extra Detail / Setting (Optional)
+            </label>
+            <input
+              id="customPortraitDetail"
+              type="text"
+              placeholder="e.g., sun-kissed freckles, subtle gold hoop earrings, parked convertible by palm trees..."
+              class="w-full rounded-xl border border-white/10 bg-obsidian px-3.5 py-2.5 text-sm text-white placeholder-zinc-500 focus:border-amberWarm focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <!-- MODE 2: REMIX POSE & SCENE BUILDER -->
+        <div id="remixBuilderPanel" class="hidden space-y-5">
+          <!-- Reference Subject Lock & Uploader -->
+          <div class="rounded-2xl border border-amberGold/30 bg-surface p-4">
+            <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="rounded-lg bg-amberGold/20 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-amberWarm">Reference Lock</span>
+                <span class="text-xs text-zinc-400">Pick a saved model or upload an image</span>
+              </div>
+
+              <label
+                for="referenceFileInput"
+                class="cursor-pointer rounded-xl border border-coralPink/40 bg-coralPink/15 px-3 py-1.5 text-xs font-semibold text-roseGlow transition hover:bg-coralPink/25"
+              >
+                Upload Reference Image
+              </label>
+              <input id="referenceFileInput" type="file" accept="image/*" class="hidden" />
+            </div>
+
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div class="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-white/15 bg-obsidian">
+                <img
+                  id="remixRefPreviewImg"
+                  src=""
+                  alt="Reference Subject"
+                  class="h-full w-full object-cover"
+                />
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                  <p id="remixRefName" class="truncate text-sm font-bold text-white">No reference selected yet</p>
+                  <span id="remixLockStatusBadge" class="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">Identity Ready</span>
+                </div>
+                <p id="remixRefDesc" class="mt-0.5 text-xs text-zinc-400">
+                  Select from your Saved Models below, upload a photo, or generate a portrait first to lock identity.
+                </p>
+              </div>
+            </div>
+
+            <!-- Saved Models Quick Strip inside Remix -->
+            <div class="mt-3.5 border-t border-white/10 pt-3">
+              <div class="mb-2 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+                <span>Saved Models Quick-Select</span>
+                <span id="remixSavedStripCount">0 available</span>
+              </div>
+              <div id="remixSavedStrip" class="flex gap-2.5 overflow-x-auto pb-1">
+                <p class="text-xs text-zinc-500">No saved models yet. Generate and save a model to quick-pick here.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dynamic Remix Pill Groups -->
+          <div id="remixAttributeGroups" class="space-y-5"></div>
+
+          <!-- Conditional Vehicle / Car Type Group -->
+          <div id="vehicleSelectorBlock" class="rounded-2xl border border-amberGold/25 bg-surface/70 p-4">
+            <div class="mb-2.5 flex items-center justify-between">
+              <span class="text-xs font-semibold uppercase tracking-wider text-amberWarm">Vehicle / Car Type</span>
+              <span class="text-[11px] text-zinc-400">Active for car &amp; vehicle scenes</span>
+            </div>
+            <div id="vehiclePillsContainer" class="flex flex-wrap gap-2"></div>
+          </div>
+
+          <!-- Custom Scene Direction -->
+          <div class="rounded-2xl border border-white/10 bg-surface/70 p-4">
+            <label for="customRemixDirection" class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-300">
+              Custom Scene &amp; Pose Direction
+            </label>
+            <input
+              id="customRemixDirection"
+              type="text"
+              placeholder="e.g., leaning casually against the passenger door at golden hour with ocean breeze..."
+              class="w-full rounded-xl border border-white/10 bg-obsidian px-3.5 py-2.5 text-sm text-white placeholder-zinc-500 focus:border-amberWarm focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <!-- MODE 3: AI VIDEO CLIP BUILDER -->
+        <div id="videoBuilderPanel" class="hidden space-y-5">
+          <div id="videoAttributeGroups" class="space-y-5"></div>
+
+          <!-- Aspect Ratio Pills -->
+          <div class="rounded-2xl border border-white/10 bg-surface/70 p-4">
+            <span class="mb-2.5 block text-xs font-semibold uppercase tracking-wider text-zinc-300">Aspect Ratio</span>
+            <div id="videoAspectPills" class="flex flex-wrap gap-2"></div>
+          </div>
+
+          <!-- Optional Video Motion Prompt -->
+          <div class="rounded-2xl border border-white/10 bg-surface/70 p-4">
+            <label for="customVideoDirection" class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-300">
+              Action &amp; Atmosphere Notes (Optional)
+            </label>
+            <input
+              id="customVideoDirection"
+              type="text"
+              placeholder="e.g., warm sunset rim light, gentle breeze moving hair, candid smile toward lens..."
+              class="w-full rounded-xl border border-white/10 bg-obsidian px-3.5 py-2.5 text-sm text-white placeholder-zinc-500 focus:border-coralPink focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <!-- Model Name + Primary Generate / Save Bar -->
+        <div class="mt-6 border-t border-white/10 pt-5">
+          <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div class="flex-1">
+              <label for="modelNameInput" class="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+                Persona / Project Name
+              </label>
+              <input
+                id="modelNameInput"
+                type="text"
+                value="Elena Coastline"
+                placeholder="Name this persona or clip..."
+                class="w-full rounded-2xl border border-white/15 bg-surface px-3.5 py-2.5 text-sm font-medium text-white placeholder-zinc-500 focus:border-amberWarm focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-2.5 sm:flex-row">
+            <button
+              id="generateBtn"
+              type="button"
+              class="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amberGold via-amberWarm to-coralPink px-5 py-3.5 text-sm font-extrabold text-obsidian shadow-lg shadow-amberGold/25 transition hover:brightness-105 active:scale-[0.99]"
+            >
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+                <path d="M12 3v4M12 17v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M3 12h4M17 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+              </svg>
+              <span id="generateBtnLabel">Generate Portrait (6 Credits)</span>
+            </button>
+
+            <button
+              id="saveModelBtn"
+              type="button"
+              class="flex items-center justify-center gap-2 rounded-2xl border border-white/20 bg-surface px-5 py-3.5 text-sm font-bold text-white transition hover:border-amberWarm/60 hover:bg-surfaceAlt active:scale-[0.99]"
+            >
+              <svg class="h-4 w-4 text-amberWarm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+              </svg>
+              <span>Save Model</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT COLUMN: Live Preview & Prompt Studio Card -->
+      <aside class="rounded-3xl border border-white/10 bg-charcoal p-5 shadow-2xl sm:p-6 lg:col-span-5 lg:sticky lg:top-20">
+        <div class="mb-4 flex items-center justify-between gap-2">
+          <div>
+            <h2 class="text-base font-bold text-white sm:text-lg">Live Preview &amp; Prompt Studio</h2>
+            <p id="previewStatusText" class="text-xs text-zinc-400">Ready to render photorealistic output</p>
+          </div>
+          <span id="outputTypeBadge" class="rounded-full border border-amberGold/30 bg-amberGold/10 px-2.5 py-1 text-[11px] font-bold text-amberWarm">
+            PHOTO
+          </span>
+        </div>
+
+        <!-- Stage Container -->
+        <div class="relative aspect-[4/5] w-full overflow-hidden rounded-2xl border border-white/10 bg-obsidian">
+          <!-- Generated Photo Image -->
+          <img
+            id="previewImage"
+            src=""
+            alt="Generated Persona Preview"
+            class="h-full w-full object-cover transition duration-300"
+          />
+
+          <!-- Generated Video Player -->
+          <video
+            id="previewVideo"
+            controls
+            loop
+            playsinline
+            class="hidden h-full w-full bg-black object-cover"
+          ></video>
+
+          <!-- Reference Comparison Overlay (when toggled in Remix mode) -->
+          <div
+            id="compareReferenceOverlay"
+            class="pointer-events-none absolute bottom-3 left-3 z-10 hidden overflow-hidden rounded-xl border-2 border-amberWarm bg-obsidian/90 shadow-xl"
+          >
+            <img id="compareReferenceImg" src="" alt="Reference Comparison" class="h-24 w-20 object-cover" />
+            <div class="bg-obsidian/90 px-1.5 py-0.5 text-center text-[9px] font-bold uppercase tracking-wider text-amberWarm">
+              Reference
+            </div>
+          </div>
+
+          <!-- Generating Overlay -->
+          <div
+            id="loadingOverlay"
+            class="absolute inset-0 z-20 hidden flex-col items-center justify-center bg-obsidian/85 px-6 text-center backdrop-blur-md"
+          >
+            <div class="glow-orb mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-amberGold to-coralPink text-obsidian">
+              <svg class="h-7 w-7 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+              </svg>
+            </div>
+            <p id="loadingTitle" class="text-sm font-bold text-white">Synthesizing Lifelike Portrait...</p>
+            <p id="loadingDetail" class="mt-1 text-xs text-zinc-400">Calibrating skin texture, lighting, and lens depth</p>
+          </div>
+        </div>
+
+        <!-- Stage Action Toolbar -->
+        <div class="mt-3.5 flex flex-wrap items-center gap-2">
+          <button
+            id="downloadMediaBtn"
+            type="button"
+            class="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-white/15 bg-surface px-3 py-2 text-xs font-semibold text-zinc-100 transition hover:border-amberWarm/50 hover:bg-surfaceAlt"
+          >
+            <svg class="h-3.5 w-3.5 text-amberWarm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            <span>Download</span>
+          </button>
+
+          <button
+            id="remixCurrentBtn"
+            type="button"
+            class="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-amberGold/30 bg-amberGold/10 px-3 py-2 text-xs font-semibold text-amberWarm transition hover:bg-amberGold/20"
+          >
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M16 3h5v5" />
+              <path d="M4 20L21 3" />
+            </svg>
+            <span>Remix Pose/Scene</span>
+          </button>
+
+          <button
+            id="animateCurrentBtn"
+            type="button"
+            class="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-coralPink/30 bg-coralPink/10 px-3 py-2 text-xs font-semibold text-roseGlow transition hover:bg-coralPink/20"
+          >
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+            <span>Animate Clip</span>
+          </button>
+
+          <button
+            id="toggleCompareBtn"
+            type="button"
+            class="rounded-xl border border-white/15 bg-surface px-3 py-2 text-xs font-semibold text-zinc-300 transition hover:border-white/30 hover:text-white"
+            title="Toggle reference subject overlay"
+          >
+            Compare Ref
+          </button>
+        </div>
+
+        <!-- Prompt Studio Box -->
+        <div class="mt-4 rounded-2xl border border-white/10 bg-surface p-3.5">
+          <div class="mb-2 flex items-center justify-between">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-zinc-400">Compiled Camera &amp; Scene Prompt</span>
+            <button
+              id="copyPromptBtn"
+              type="button"
+              class="rounded-lg border border-white/10 bg-obsidian px-2.5 py-1 text-[11px] font-semibold text-amberWarm transition hover:border-amberWarm/50"
+            >
+              Copy Prompt
+            </button>
+          </div>
+          <p id="promptOutputText" class="max-h-28 overflow-y-auto text-xs leading-relaxed text-zinc-300"></p>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <!-- SAVED MODELS DRAWER / MODAL -->
+  <div id="savedModelsModal" class="fixed inset-0 z-40 hidden items-center justify-end bg-black/75 backdrop-blur-sm">
+    <div id="savedModelsBackdrop" class="flex-1 h-full"></div>
+    <div class="relative flex h-full w-full max-w-md flex-col border-l border-white/15 bg-charcoal p-5 shadow-2xl">
+      <div class="mb-4 flex items-center justify-between border-b border-white/10 pb-3.5">
+        <div>
+          <h3 class="text-base font-bold text-white">Saved Models &amp; Clips</h3>
+          <p class="text-xs text-zinc-400">Load into studio, remix pose/scene, or remove</p>
+        </div>
+        <button
+          id="closeSavedBtn"
+          type="button"
+          class="rounded-xl border border-white/15 bg-surface px-3 py-1.5 text-xs font-semibold text-zinc-200 hover:bg-surfaceAlt"
+        >
+          Close
+        </button>
+      </div>
+
+      <div id="savedModelsList" class="flex-1 space-y-3 overflow-y-auto pr-1"></div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // =========================================================================
+      // 1. CONFIGURATION & ATTRIBUTE CATALOGS
+      // =========================================================================
+      const STORAGE_KEY_MODELS = 'personaforge_saved_models_v1';
+      const STORAGE_KEY_CREDITS = 'personaforge_credits_v1';
+
+      const PHOTO_GROUPS = [
+        { key: 'subject', label: 'Subject / Gender', options: ['Woman', 'Man', 'Person'] },
+        { key: 'age', label: 'Age', options: ['18-20', 'Early 20s', 'Mid 20s', 'Late 20s', '30s'] },
+        {
+          key: 'look',
+          label: 'Look / Ethnicity',
+          options: ['Latina/o', 'Black', 'White', 'East Asian', 'South Asian', 'Middle Eastern', 'Mixed']
+        },
+        {
+          key: 'hair',
+          label: 'Hair',
+          options: ['Long black', 'Long wavy brown', 'Sun-kissed blonde', 'Curly dark', 'Short bob', 'Ponytail']
+        },
+        { key: 'eyes', label: 'Eyes', options: ['Dark brown', 'Hazel', 'Amber', 'Green', 'Blue'] },
+        { key: 'build', label: 'Build', options: ['Slim', 'Athletic', 'Curvy', 'Petite', 'Plus-size'] },
+        {
+          key: 'expression',
+          label: 'Expression',
+          options: ['Warm candid smile', 'Soft confident gaze', 'Playful smirk', 'Serene relaxed', 'Laughing mid-moment']
+        },
+        {
+          key: 'style',
+          label: 'Style / Outfit',
+          options: ['Casual', 'Streetwear', 'Athleisure', 'Chic', 'Cozy', 'Glam', 'Beachwear']
+        },
+        {
+          key: 'vibe',
+          label: 'Vibe',
+          options: ['Girl-next-door', 'Baddie', 'Clean girl', 'Soft / feminine', 'Sporty', 'Editorial']
+        },
+        {
+          key: 'camera',
+          label: 'Camera & Lighting',
+          options: [
+            '85mm f/1.4 Golden Hour',
+            'iPhone Candid Daylight',
+            '50mm Natural Window Light',
+            '35mm Street Editorial',
+            'Soft Studio Beauty Dish'
+          ]
+        }
+      ];
+
+      const REMIX_GROUPS = [
+        {
+          key: 'lockStrength',
+          label: 'Identity Lock Strength',
+          options: ['Strict Face Lock', 'Natural Angle Shift', 'Full Body / Action']
+        },
+        {
+          key: 'pose',
+          label: 'New Pose / Action',
+          options: [
+            'Leaning Against Car',
+            'Casual Walking Pose',
+            'Sitting / Relaxed Stance',
+            'Looking Over Shoulder',
+            'Hands in Pockets / Confident'
+          ]
+        },
+        {
+          key: 'background',
+          label: 'New Background / Location',
+          options: [
+            'Leaning by a Car / Parked Vehicle',
+            'Tokyo Neon Night Street',
+            'Luxury Car Interior',
+            'Tropical Beach & Yacht',
+            'Parisian Sidewalk Cafe',
+            'Private Jet Cabin',
+            'Mountain Overlook',
+            'Penthouse Loft'
+          ]
+        },
+        {
+          key: 'outfit',
+          label: 'New Outfit / Styling',
+          options: [
+            'Keep Reference Outfit',
+            'Leather Jacket & Denim',
+            'Summer Sundress',
+            'Streetwear Hoodie',
+            'Tailored Blazer',
+            'Beachwear / Resort'
+          ]
+        },
+        {
+          key: 'framing',
+          label: 'Camera Framing & Angle',
+          options: [
+            'Close-Up Portrait',
+            'Medium Cowboy Shot',
+            'Full Body Shot',
+            'Low Angle Hero',
+            'Over-the-Shoulder'
+          ]
+        }
+      ];
+
+      const VEHICLE_OPTIONS = [
+        'Sleek Sports Coupe',
+        'Classic Convertible',
+        'Luxury SUV',
+        'Vintage Sedan',
+        'Matte Black Supercar'
+      ];
+
+      const VIDEO_GROUPS = [
+        {
+          key: 'motion',
+          label: 'Motion / Action',
+          options: [
+            'Subtle Head Turn & Smile',
+            'Walking Toward Camera',
+            'Speaking to Camera (Vlog)',
+            'Hair Blowing in Wind',
+            'Looking Over Shoulder',
+            'Coffee Sip & Laugh'
+          ]
+        },
+        {
+          key: 'cameraMove',
+          label: 'Camera Movement',
+          options: [
+            'Handheld Selfie Pan',
+            'Slow Dolly Push-In',
+            'Gimbal Tracking Walk',
+            'Static Tripod Close-Up',
+            '360° Parallax Orbit'
+          ]
+        },
+        {
+          key: 'durationFps',
+          label: 'Clip Duration & FPS',
+          options: ['4s • 24fps Cinema', '6s • 30fps Smooth', '8s • 60fps Fluid']
+        }
+      ];
+
+      const ASPECT_RATIOS = ['9:16', '4:5', '16:9', '1:1'];
+
+      // Curated real-world portrait & scene photographs for instant, reliable fallback rendering
+      const REAL_PHOTO_POOL = {
+        woman: [
+          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=900&q=85',
+          'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=85',
+          'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=900&q=85',
+          'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=900&q=85',
+          'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=900&q=85'
+        ],
+        man: [
+          'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=900&q=85',
+          'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=900&q=85',
+          'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=900&q=85',
+          'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=900&q=85'
+        ],
+        person: [
+          'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=900&q=85',
+          'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=85',
+          'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=900&q=85'
+        ],
+        locations: {
+          'Leaning by a Car / Parked Vehicle': [
+            'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=88',
+            'https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&w=1200&q=88',
+            'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=1200&q=88'
+          ],
+          'Tokyo Neon Night Street': [
+            'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?auto=format&fit=crop&w=1200&q=88',
+            'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=1200&q=88'
+          ],
+          'Luxury Car Interior': [
+            'https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=1200&q=88',
+            'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=1200&q=88'
+          ],
+          'Tropical Beach & Yacht': [
+            'https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?auto=format&fit=crop&w=1200&q=88',
+            'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=88'
+          ],
+          'Parisian Sidewalk Cafe': [
+            'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=1200&q=88',
+            'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=1200&q=88'
+          ],
+          'Private Jet Cabin': [
+            'https://images.unsplash.com/photo-1540962351504-03099e0a754b?auto=format&fit=crop&w=1200&q=88',
+            'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1200&q=88'
+          ],
+          'Mountain Overlook': [
+            'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=88',
+            'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=88'
+          ],
+          'Penthouse Loft': [
+            'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=88',
+            'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=88'
+          ]
+        }
+      };
+
+      const OUTFIT_STYLING = {
+        'Keep Reference Outfit': null,
+        'Leather Jacket & Denim': {
+          tint: 'rgba(28, 30, 38, 0.36)',
+          accent: 'rgba(245, 158, 11, 0.14)',
+          description: 'black leather jacket layered over classic blue denim'
+        },
+        'Summer Sundress': {
+          tint: 'rgba(254, 243, 199, 0.25)',
+          accent: 'rgba(251, 146, 60, 0.16)',
+          description: 'sunlit summer sundress with natural fabric drape'
+        },
+        'Streetwear Hoodie': {
+          tint: 'rgba(148, 163, 184, 0.28)',
+          accent: 'rgba(251, 113, 133, 0.12)',
+          description: 'heavyweight streetwear hoodie with relaxed silhouette'
+        },
+        'Tailored Blazer': {
+          tint: 'rgba(30, 41, 59, 0.32)',
+          accent: 'rgba(226, 232, 240, 0.14)',
+          description: 'structured tailored blazer with crisp lapels'
+        },
+        'Beachwear / Resort': {
+          tint: 'rgba(186, 230, 253, 0.22)',
+          accent: 'rgba(251, 191, 36, 0.18)',
+          description: 'coastal resort wear suited for warm sunlight'
+        }
+      };
+
+      // =========================================================================
+      // 2. APPLICATION STATE
+      // =========================================================================
+      function createDefaultPhotoSelections() {
+        return {
+          subject: 'Woman',
+          age: 'Early 20s',
+          look: 'Latina/o',
+          hair: 'Sun-kissed blonde',
+          eyes: 'Hazel',
+          build: 'Athletic',
+          expression: 'Warm candid smile',
+          style: 'Casual',
+          vibe: 'Girl-next-door',
+          camera: '85mm f/1.4 Golden Hour'
+        };
+      }
+
+      function createDefaultRemixSelections() {
+        return {
+          lockStrength: 'Natural Angle Shift',
+          pose: 'Leaning Against Car',
+          background: 'Leaning by a Car / Parked Vehicle',
+          outfit: 'Keep Reference Outfit',
+          vehicle: 'Sleek Sports Coupe',
+          framing: 'Medium Cowboy Shot'
+        };
+      }
+
+      function createDefaultVideoSelections() {
+        return {
+          motion: 'Subtle Head Turn & Smile',
+          cameraMove: 'Handheld Selfie Pan',
+          durationFps: '4s • 24fps Cinema',
+          aspectRatio: '9:16'
+        };
+      }
+
+      const state = {
+        mode: 'photo', // 'photo' | 'remix' | 'video'
+        credits: loadCredits(),
+        savedModels: loadSavedModels(),
+        selections: createDefaultPhotoSelections(),
+        remixSelections: createDefaultRemixSelections(),
+        videoSelections: createDefaultVideoSelections(),
+        portraitDetail: '',
+        remixDirection: '',
+        videoDirection: '',
+        currentPhotoUrl: '',
+        currentVideoUrl: '',
+        currentMediaType: 'photo', // 'photo' | 'video'
+        lastWasRemix: false,
+        referenceSubject: null, // { name, imageUrl, summary }
+        compareVisible: false,
+        fallbackCursor: 0,
+        isGenerating: false
+      };
+
+      // =========================================================================
+      // 3. DOM CACHE & UTILITIES
+      // =========================================================================
+      const dom = {
+        toastContainer: document.getElementById('toastContainer'),
+        creditsCountLabel: document.getElementById('creditsCountLabel'),
+        refillCreditsBtn: document.getElementById('refillCreditsBtn'),
+        savedCountLabel: document.getElementById('savedCountLabel'),
+        openSavedBtn: document.getElementById('openSavedBtn'),
+        closeSavedBtn: document.getElementById('closeSavedBtn'),
+        savedModelsModal: document.getElementById('savedModelsModal'),
+        savedModelsBackdrop: document.getElementById('savedModelsBackdrop'),
+        savedModelsList: document.getElementById('savedModelsList'),
+        modeBtns: Array.from(document.querySelectorAll('.mode-btn')),
+        modeHelperBadge: document.getElementById('modeHelperBadge'),
+        builderSubtitle: document.getElementById('builderSubtitle'),
+        photoBuilderPanel: document.getElementById('photoBuilderPanel'),
+        remixBuilderPanel: document.getElementById('remixBuilderPanel'),
+        videoBuilderPanel: document.getElementById('videoBuilderPanel'),
+        photoAttributeGroups: document.getElementById('photoAttributeGroups'),
+        remixAttributeGroups: document.getElementById('remixAttributeGroups'),
+        vehicleSelectorBlock: document.getElementById('vehicleSelectorBlock'),
+        vehiclePillsContainer: document.getElementById('vehiclePillsContainer'),
+        videoAttributeGroups: document.getElementById('videoAttributeGroups'),
+        videoAspectPills: document.getElementById('videoAspectPills'),
+        customPortraitDetail: document.getElementById('customPortraitDetail'),
+        customRemixDirection: document.getElementById('customRemixDirection'),
+        customVideoDirection: document.getElementById('customVideoDirection'),
+        referenceFileInput: document.getElementById('referenceFileInput'),
+        remixRefPreviewImg: document.getElementById('remixRefPreviewImg'),
+        remixRefName: document.getElementById('remixRefName'),
+        remixRefDesc: document.getElementById('remixRefDesc'),
+        remixLockStatusBadge: document.getElementById('remixLockStatusBadge'),
+        remixSavedStrip: document.getElementById('remixSavedStrip'),
+        remixSavedStripCount: document.getElementById('remixSavedStripCount'),
+        modelNameInput: document.getElementById('modelNameInput'),
+        generateBtn: document.getElementById('generateBtn'),
+        generateBtnLabel: document.getElementById('generateBtnLabel'),
+        saveModelBtn: document.getElementById('saveModelBtn'),
+        presetBeachCarBtn: document.getElementById('presetBeachCarBtn'),
+        resetAllBtn: document.getElementById('resetAllBtn'),
+        previewStatusText: document.getElementById('previewStatusText'),
+        outputTypeBadge: document.getElementById('outputTypeBadge'),
+        previewImage: document.getElementById('previewImage'),
+        previewVideo: document.getElementById('previewVideo'),
+        compareReferenceOverlay: document.getElementById('compareReferenceOverlay'),
+        compareReferenceImg: document.getElementById('compareReferenceImg'),
+        loadingOverlay: document.getElementById('loadingOverlay'),
+        loadingTitle: document.getElementById('loadingTitle'),
+        loadingDetail: document.getElementById('loadingDetail'),
+        downloadMediaBtn: document.getElementById('downloadMediaBtn'),
+        remixCurrentBtn: document.getElementById('remixCurrentBtn'),
+        animateCurrentBtn: document.getElementById('animateCurrentBtn'),
+        toggleCompareBtn: document.getElementById('toggleCompareBtn'),
+        promptOutputText: document.getElementById('promptOutputText'),
+        copyPromptBtn: document.getElementById('copyPromptBtn')
+      };
+
+      function showToast(message, tone = 'info') {
+        if (!dom.toastContainer) return;
+        const el = document.createElement('div');
+        const toneClasses =
+          tone === 'error'
+            ? 'border-roseGlow/60 bg-rose-950/95 text-rose-100'
+            : tone === 'success'
+            ? 'border-emerald-400/50 bg-emerald-950/95 text-emerald-100'
+            : 'border-amberWarm/50 bg-charcoal/95 text-amber-100';
+        el.className = `pointer-events-auto rounded-2xl border px-4 py-2.5 text-xs font-semibold shadow-2xl backdrop-blur-md transition ${toneClasses}`;
+        el.textContent = message;
+        dom.toastContainer.appendChild(el);
+        setTimeout(() => {
+          el.style.opacity = '0';
+          el.style.transform = 'translateY(6px)';
+          setTimeout(() => el.remove(), 220);
+        }, 2800);
+      }
+
+      function loadCredits() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY_CREDITS);
+          const parsed = raw ? parseInt(raw, 10) : NaN;
+          return Number.isFinite(parsed) && parsed >= 0 ? parsed : 120;
+        } catch (_err) {
+          return 120;
+        }
+      }
+
+      function saveCredits(val) {
+        state.credits = Math.max(0, val);
+        try {
+          localStorage.setItem(STORAGE_KEY_CREDITS, String(state.credits));
+        } catch (_err) {}
+        if (dom.creditsCountLabel) {
+          dom.creditsCountLabel.textContent = String(state.credits);
+        }
+      }
+
+      function loadSavedModels() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY_MODELS);
+          const arr = raw ? JSON.parse(raw) : [];
+          return Array.isArray(arr) ? arr : [];
+        } catch (_err) {
+          return [];
+        }
+      }
+
+      function persistSavedModels() {
+        try {
+          localStorage.setItem(STORAGE_KEY_MODELS, JSON.stringify(state.savedModels));
+        } catch (_err) {
+          // If localStorage quota is exceeded (e.g., large video blob), keep in-memory state and notify user
+          showToast('Saved in session (browser storage full for large media)', 'info');
+        }
+        updateSavedCountUI();
+      }
+
+      function updateSavedCountUI() {
+        const count = state.savedModels.length;
+        if (dom.savedCountLabel) dom.savedCountLabel.textContent = String(count);
+        if (dom.remixSavedStripCount) {
+          dom.remixSavedStripCount.textContent = `${count} saved`;
+        }
+        renderRemixSavedStrip();
+        renderSavedModelsModalList();
+      }
+
+      function getCurrentCost() {
+        if (state.mode === 'video') return 10;
+        if (state.mode === 'remix') return 8;
+        return 6;
+      }
+
+      function createStandbyPhotoDataUrl(label = 'PersonaForge Studio') {
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="900" viewBox="0 0 720 900">
+          <defs>
+            <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#171722"/>
+              <stop offset="55%" stop-color="#221b26"/>
+              <stop offset="100%" stop-color="#121218"/>
+            </linearGradient>
+            <radialGradient id="glow" cx="50%" cy="42%" r="45%">
+              <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.22"/>
+              <stop offset="60%" stop-color="#fb7185" stop-opacity="0.10"/>
+              <stop offset="100%" stop-color="#0c0c10" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <rect width="720" height="900" fill="url(#bg)"/>
+          <rect width="720" height="900" fill="url(#glow)"/>
+          <circle cx="360" cy="365" r="112" fill="#272736" stroke="#fbbf24" stroke-opacity="0.35" stroke-width="2"/>
+          <circle cx="360" cy="342" r="46" fill="#3a394d"/>
+          <path d="M276 446 C288 396, 432 396, 444 446" fill="#3a394d"/>
+          <text x="360" y="540" text-anchor="middle" fill="#fef3c7" font-family="Inter, sans-serif" font-size="24" font-weight="700">${escapeXml(label)}</text>
+          <text x="360" y="574" text-anchor="middle" fill="#a1a1aa" font-family="Inter, sans-serif" font-size="15">Click Generate to synthesize photorealistic output</text>
+        </svg>`;
+        return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      }
+
+      function escapeXml(str) {
+        return String(str || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      // =========================================================================
+      // 4. PROMPT COMPILATION & UI RENDERING
+      // =========================================================================
+      function buildSubjectSummary() {
+        const s = state.selections;
+        return `${s.age} ${s.look} ${s.subject.toLowerCase()}, ${s.build.toLowerCase()} build, ${s.hair.toLowerCase()} hair, ${s.eyes.toLowerCase()} eyes, ${s.expression.toLowerCase()}, wearing ${s.style.toLowerCase()}, ${s.vibe.toLowerCase()} vibe`;
+      }
+
+      function compilePrompt() {
+        const subjectDesc = buildSubjectSummary();
+        const extra = (state.portraitDetail || '').trim();
+
+        if (state.mode === 'photo') {
+          return [
+            `Candid, unretouched real-world photograph of a ${subjectDesc}.`,
+            `Shot on ${state.selections.camera}, natural skin texture with visible pores, fine facial details, natural catchlights in the eyes, realistic hair strands, authentic depth of field.`,
+            extra ? `Additional details: ${extra}.` : '',
+            'Real human photography, no CGI plastic skin, no cartoon or illustration look.'
+          ]
+            .filter(Boolean)
+            .join(' ');
+        }
+
+        if (state.mode === 'remix') {
+          const r = state.remixSelections;
+          const refName = state.referenceSubject ? state.referenceSubject.name : 'the reference subject';
+          const outfitObj = OUTFIT_STYLING[r.outfit];
+          const isVehicleScene =
+            r.background.toLowerCase().includes('car') ||
+            r.background.toLowerCase().includes('vehicle') ||
+            r.pose.toLowerCase().includes('car');
+
+          const outfitText =
+            r.outfit && r.outfit !== 'Keep Reference Outfit'
+              ? `Dressed in ${outfitObj ? outfitObj.description : r.outfit.toLowerCase()}, naturally fitted to the new pose.`
+              : 'Preserving cohesive styling with the reference subject.';
+
+          const vehicleText = isVehicleScene
+            ? `Features a realistic ${r.vehicle.toLowerCase()} with real metallic paint reflections, tire contact shadows on pavement, and authentic automotive detail.`
+            : '';
+
+          const extraRemix = (state.remixDirection || '').trim();
+
+          return [
+            `Identity-preserving scene photograph keeping the exact face, likeness, hair, and build of ${refName} (${subjectDesc}).`,
+            `${r.lockStrength}: subject is ${r.pose.toLowerCase()} in "${r.background}".`,
+            vehicleText,
+            outfitText,
+            `Framed as a ${r.framing.toLowerCase()} with ${state.selections.camera}, natural environmental light wrap, and realistic ground shadows.`,
+            extraRemix ? `Scene direction: ${extraRemix}.` : '',
+            '100% realistic DSLR/smartphone photography, never cartoon, never anime, never flat cutout.'
+          ]
+            .filter(Boolean)
+            .join(' ');
+        }
+
+        // Video mode
+        const v = state.videoSelections;
+        const extraVid = (state.videoDirection || '').trim();
+        return [
+          `Smooth photorealistic video clip (${v.durationFps}, aspect ${v.aspectRatio}) of ${subjectDesc}.`,
+          `Action: ${v.motion.toLowerCase()}. Camera movement: ${v.cameraMove.toLowerCase()}, lit with ${state.selections.camera}.`,
+          extraVid ? `Atmosphere & notes: ${extraVid}.` : '',
+          'Natural human motion, lifelike micro-expressions, realistic light and shadow consistency.'
+        ]
+          .filter(Boolean)
+          .join(' ');
+      }
+
+      function refreshPromptDisplay() {
+        if (dom.promptOutputText) {
+          dom.promptOutputText.textContent = compilePrompt();
+        }
+      }
+
+      function renderPillGroup(container, options, activeValue, onSelect) {
+        if (!container) return;
+        container.innerHTML = '';
+        options.forEach((opt) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          const isSelected = opt === activeValue;
+          btn.className = `pill-btn rounded-xl border px-3 py-1.5 text-xs font-medium ${
+            isSelected
+              ? 'pill-active'
+              : 'border-white/10 bg-surface text-zinc-300 hover:border-white/25 hover:bg-surfaceAlt hover:text-white'
+          }`;
+          btn.textContent = opt;
+          btn.addEventListener('click', () => {
+            onSelect(opt);
+            refreshPromptDisplay();
+          });
+          container.appendChild(btn);
+        });
+      }
+
+      function renderPhotoGroups() {
+        if (!dom.photoAttributeGroups) return;
+        dom.photoAttributeGroups.innerHTML = '';
+        PHOTO_GROUPS.forEach((group) => {
+          const wrap = document.createElement('div');
+          const header = document.createElement('div');
+          header.className = 'mb-2 flex items-center justify-between';
+          header.innerHTML = `
+            <span class="text-xs font-semibold uppercase tracking-wider text-zinc-300">${group.label}</span>
+            <span class="text-xs font-medium text-amberWarm">${state.selections[group.key]}</span>
+          `;
+          const pillsWrap = document.createElement('div');
+          pillsWrap.className = 'flex flex-wrap gap-2';
+
+          renderPillGroup(pillsWrap, group.options, state.selections[group.key], (chosen) => {
+            state.selections[group.key] = chosen;
+            renderPhotoGroups();
+          });
+
+          wrap.appendChild(header);
+          wrap.appendChild(pillsWrap);
+          dom.photoAttributeGroups.appendChild(wrap);
+        });
+      }
+
+      function renderRemixGroups() {
+        if (!dom.remixAttributeGroups) return;
+        dom.remixAttributeGroups.innerHTML = '';
+        REMIX_GROUPS.forEach((group) => {
+          const wrap = document.createElement('div');
+          const header = document.createElement('div');
+          header.className = 'mb-2 flex items-center justify-between';
+          header.innerHTML = `
+            <span class="text-xs font-semibold uppercase tracking-wider text-zinc-300">${group.label}</span>
+            <span class="text-xs font-medium text-amberWarm">${state.remixSelections[group.key]}</span>
+          `;
+          const pillsWrap = document.createElement('div');
+          pillsWrap.className = 'flex flex-wrap gap-2';
+
+          renderPillGroup(pillsWrap, group.options, state.remixSelections[group.key], (chosen) => {
+            state.remixSelections[group.key] = chosen;
+            renderRemixGroups();
+            updateVehicleVisibility();
+          });
+
+          wrap.appendChild(header);
+          wrap.appendChild(pillsWrap);
+          dom.remixAttributeGroups.appendChild(wrap);
+        });
+
+        updateVehicleVisibility();
+        renderVehiclePills();
+      }
+
+      function updateVehicleVisibility() {
+        if (!dom.vehicleSelectorBlock) return;
+        const bg = (state.remixSelections.background || '').toLowerCase();
+        const pose = (state.remixSelections.pose || '').toLowerCase();
+        const showVehicle = bg.includes('car') || bg.includes('vehicle') || pose.includes('car');
+        dom.vehicleSelectorBlock.classList.toggle('hidden', !showVehicle);
+      }
+
+      function renderVehiclePills() {
+        renderPillGroup(
+          dom.vehiclePillsContainer,
+          VEHICLE_OPTIONS,
+          state.remixSelections.vehicle,
+          (chosen) => {
+            state.remixSelections.vehicle = chosen;
+            renderVehiclePills();
+          }
+        );
+      }
+
+      function renderVideoGroups() {
+        if (!dom.videoAttributeGroups) return;
+        dom.videoAttributeGroups.innerHTML = '';
+        VIDEO_GROUPS.forEach((group) => {
+          const wrap = document.createElement('div');
+          const header = document.createElement('div');
+          header.className = 'mb-2 flex items-center justify-between';
+          header.innerHTML = `
+            <span class="text-xs font-semibold uppercase tracking-wider text-zinc-300">${group.label}</span>
+            <span class="text-xs font-medium text-coralPink">${state.videoSelections[group.key]}</span>
+          `;
+          const pillsWrap = document.createElement('div');
+          pillsWrap.className = 'flex flex-wrap gap-2';
+
+          renderPillGroup(pillsWrap, group.options, state.videoSelections[group.key], (chosen) => {
+            state.videoSelections[group.key] = chosen;
+            renderVideoGroups();
+          });
+
+          wrap.appendChild(header);
+          wrap.appendChild(pillsWrap);
+          dom.videoAttributeGroups.appendChild(wrap);
+        });
+
+        renderPillGroup(
+          dom.videoAspectPills,
+          ASPECT_RATIOS,
+          state.videoSelections.aspectRatio,
+          (chosen) => {
+            state.videoSelections.aspectRatio = chosen;
+            renderVideoGroups();
+          }
+        );
+      }
+
+      function syncReferenceSubjectUI() {
+        const ref = state.referenceSubject || (state.currentPhotoUrl ? {
+          name: (dom.modelNameInput && dom.modelNameInput.value.trim()) || 'Current Preview Subject',
+          imageUrl: state.currentPhotoUrl,
+          summary: buildSubjectSummary()
+        } : null);
+
+        if (ref && ref.imageUrl) {
+          if (dom.remixRefPreviewImg) dom.remixRefPreviewImg.src = ref.imageUrl;
+          if (dom.remixRefName) dom.remixRefName.textContent = ref.name || 'Locked Subject';
+          if (dom.remixRefDesc) {
+            dom.remixRefDesc.textContent = ref.summary || 'Reference likeness locked for new pose & scene composition.';
+          }
+          if (dom.remixLockStatusBadge) {
+            dom.remixLockStatusBadge.textContent = 'Identity Locked';
+            dom.remixLockStatusBadge.className = 'rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-300';
+          }
+          if (dom.compareReferenceImg) dom.compareReferenceImg.src = ref.imageUrl;
+        } else {
+          const fallbackUrl = createStandbyPhotoDataUrl('No Reference');
+          if (dom.remixRefPreviewImg) dom.remixRefPreviewImg.src = fallbackUrl;
+          if (dom.remixRefName) dom.remixRefName.textContent = 'No reference selected';
+          if (dom.remixRefDesc) {
+            dom.remixRefDesc.textContent = 'Pick a saved model below, upload a photo, or generate a portrait first.';
+          }
+          if (dom.remixLockStatusBadge) {
+            dom.remixLockStatusBadge.textContent = 'Awaiting Ref';
+            dom.remixLockStatusBadge.className = 'rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amberWarm';
+          }
+          if (dom.compareReferenceImg) dom.compareReferenceImg.src = fallbackUrl;
+        }
+
+        if (dom.compareReferenceOverlay) {
+          dom.compareReferenceOverlay.classList.toggle('hidden', !state.compareVisible);
+        }
+      }
+
+      function renderRemixSavedStrip() {
+        if (!dom.remixSavedStrip) return;
+        const photoModels = state.savedModels.filter((m) => m.imageUrl);
+        if (photoModels.length === 0) {
+          dom.remixSavedStrip.innerHTML =
+            '<p class="text-xs text-zinc-500">No saved models yet. Save a generated portrait or upload a photo above.</p>';
+          return;
+        }
+
+        dom.remixSavedStrip.innerHTML = '';
+        photoModels.forEach((model) => {
+          const isActive = state.referenceSubject && state.referenceSubject.id === model.id;
+          const card = document.createElement('button');
+          card.type = 'button';
+          card.className = `group flex shrink-0 items-center gap-2 rounded-xl border p-1.5 text-left transition ${
+            isActive
+              ? 'border-amberWarm bg-amberGold/15'
+              : 'border-white/10 bg-obsidian hover:border-white/30'
+          }`;
+          card.innerHTML = `
+            <img src="${model.imageUrl}" alt="${escapeXml(model.name)}" class="h-10 w-10 rounded-lg object-cover" />
+            <div class="pr-2">
+              <div class="max-w-[110px] truncate text-xs font-semibold text-white">${escapeXml(model.name)}</div>
+              <div class="text-[10px] text-amberWarm">${isActive ? 'Selected' : 'Use Ref'}</div>
+            </div>
+          `;
+          card.addEventListener('click', () => {
+            state.referenceSubject = {
+              id: model.id,
+              name: model.name,
+              imageUrl: model.imageUrl,
+              summary: model.summary || buildSubjectSummary()
+            };
+            syncReferenceSubjectUI();
+            refreshPromptDisplay();
+            showToast(`Locked reference: ${model.name}`, 'success');
+          });
+          dom.remixSavedStrip.appendChild(card);
+        });
+      }
+
+      function setStudioMode(newMode) {
+        if (!['photo', 'remix', 'video'].includes(newMode)) return;
+        state.mode = newMode;
+
+        dom.modeBtns.forEach((btn) => {
+          const active = btn.dataset.mode === newMode;
+          btn.classList.toggle('mode-active', active);
+          btn.setAttribute('aria-selected', String(active));
+          if (!active) {
+            btn.className =
+              'mode-btn flex items-center justify-center gap-2 rounded-2xl px-3.5 py-2.5 text-xs font-semibold text-zinc-300 transition hover:bg-surface hover:text-white sm:px-4 sm:text-sm';
+          } else {
+            btn.className =
+              'mode-btn mode-active flex items-center justify-center gap-2 rounded-2xl px-3.5 py-2.5 text-xs transition sm:px-4 sm:text-sm';
+          }
+        });
+
+        dom.photoBuilderPanel.classList.toggle('hidden', newMode !== 'photo');
+        dom.remixBuilderPanel.classList.toggle('hidden', newMode !== 'remix');
+        dom.videoBuilderPanel.classList.toggle('hidden', newMode !== 'video');
+
+        const cost = getCurrentCost();
+        if (newMode === 'photo') {
+          dom.modeHelperBadge.textContent = 'Photorealistic portraits with natural skin & lens detail';
+          dom.builderSubtitle.textContent = 'Select attributes to craft a lifelike creator or character';
+          dom.generateBtnLabel.textContent = `Generate Portrait (${cost} Credits)`;
+          dom.previewStatusText.textContent = 'Photo Portrait mode ready';
+        } else if (newMode === 'remix') {
+          dom.modeHelperBadge.textContent = 'Identity-locked pose, outfit & realistic backdrop compositor';
+          dom.builderSubtitle.textContent = 'Place a saved or uploaded person into a new pose, outfit & location';
+          dom.generateBtnLabel.textContent = `Generate Remix (${cost} Credits)`;
+          dom.previewStatusText.textContent = 'Remix Pose & Scene mode ready';
+          if (!state.referenceSubject && state.currentPhotoUrl) {
+            state.referenceSubject = {
+              name: (dom.modelNameInput && dom.modelNameInput.value.trim()) || 'Current Subject',
+              imageUrl: state.currentPhotoUrl,
+              summary: buildSubjectSummary()
+            };
+          }
+          syncReferenceSubjectUI();
+        } else {
+          dom.modeHelperBadge.textContent = 'Motion, camera movement & clip synthesis';
+          dom.builderSubtitle.textContent = 'Configure motion, camera rig, duration & aspect ratio for video';
+          dom.generateBtnLabel.textContent = `Generate Video Clip (${cost} Credits)`;
+          dom.previewStatusText.textContent = 'AI Video Clip mode ready';
+        }
+
+        refreshPromptDisplay();
+      }
+
+      function syncMediaStageDisplay() {
+        const isVideo = state.currentMediaType === 'video' && Boolean(state.currentVideoUrl);
+        if (isVideo) {
+          dom.previewImage.classList.add('hidden');
+          dom.previewVideo.classList.remove('hidden');
+          if (dom.previewVideo.src !== state.currentVideoUrl) {
+            dom.previewVideo.src = state.currentVideoUrl;
+          }
+          dom.outputTypeBadge.textContent = 'VIDEO';
+          dom.outputTypeBadge.className =
+            'rounded-full border border-coralPink/40 bg-coralPink/15 px-2.5 py-1 text-[11px] font-bold text-roseGlow';
+        } else {
+          dom.previewVideo.pause();
+          dom.previewVideo.classList.add('hidden');
+          dom.previewImage.classList.remove('hidden');
+          dom.previewImage.src = state.currentPhotoUrl || createStandbyPhotoDataUrl('PersonaForge Studio');
+          dom.outputTypeBadge.textContent = state.lastWasRemix ? 'REMIX' : 'PHOTO';
+          dom.outputTypeBadge.className =
+            'rounded-full border border-amberGold/35 bg-amberGold/15 px-2.5 py-1 text-[11px] font-bold text-amberWarm';
+        }
+
+        if (dom.compareReferenceOverlay) {
+          dom.compareReferenceOverlay.classList.toggle('hidden', !state.compareVisible);
+        }
+      }
+
+      // =========================================================================
+      // 5. GEMINI MULTIMODAL / IMAGE ENGINE & REALISTIC COMPOSITOR FALLBACK
+      // =========================================================================
+      function pickFallbackPortraitUrl(subjectGender) {
+        const key = (subjectGender || 'Woman').toLowerCase();
+        const pool =
+          key.includes('man') || key.includes('male')
+            ? REAL_PHOTO_POOL.man
+            : key.includes('person')
+            ? REAL_PHOTO_POOL.person
+            : REAL_PHOTO_POOL.woman;
+        const url = pool[state.fallbackCursor % pool.length];
+        state.fallbackCursor += 1;
+        return url;
+      }
+
+      function pickPhotographicSceneUrl(remixOpts) {
+        const bgKey = remixOpts.background || 'Leaning by a Car / Parked Vehicle';
+        const list = REAL_PHOTO_POOL.locations[bgKey] || REAL_PHOTO_POOL.locations['Leaning by a Car / Parked Vehicle'];
+        const url = list[state.fallbackCursor % list.length];
+        state.fallbackCursor += 1;
+        return url;
+      }
+
+      async function urlToInlineBase64(url) {
+        if (!url || url.startsWith('data:image/svg+xml')) return null;
+        if (url.startsWith('data:')) {
+          const parts = url.split(',');
+          if (parts.length === 2) {
+            const mimeMatch = parts[0].match(/data:([^;]+);base64/);
+            return {
+              mimeType: mimeMatch ? mimeMatch[1] : 'image/jpeg',
+              data: parts[1]
+            };
+          }
+          return null;
+        }
+        try {
+          const resp = await fetch(url);
+          if (!resp.ok) return null;
+          const blob = await resp.blob();
+          const mimeType = blob.type || 'image/jpeg';
+          const dataUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+          const idx = String(dataUrl).indexOf(',');
+          if (idx === -1) return null;
+          return { mimeType, data: String(dataUrl).slice(idx + 1) };
+        } catch (_err) {
+          return null;
+        }
+      }
+
+      async function callGeminiImageModel(promptText, referenceImageUrl = null) {
+        // Calls Gemini image generation endpoint when available in host environment
+        const endpoint =
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image:generateContent';
+
+        const parts = [{ text: promptText }];
+        if (referenceImageUrl) {
+          const inlineRef = await urlToInlineBase64(referenceImageUrl);
+          if (inlineRef) {
+            parts.unshift({
+              inlineData: {
+                mimeType: inlineRef.mimeType,
+                data: inlineRef.data
+              }
+            });
+          }
+        }
+
+        const payload = {
+          contents: [{ role: 'user', parts }],
+          generationConfig: {
+            responseModalities: ['TEXT', 'IMAGE']
+          }
+        };
+
+        let lastErr = null;
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            const response = await fetch(endpoint, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            if (!response.ok) {
+              throw new Error(`Gemini HTTP ${response.status}`);
+            }
+            const json = await response.json();
+            const candidates = json.candidates || [];
+            for (const cand of candidates) {
+              const cParts = (cand.content && cand.content.parts) || [];
+              for (const p of cParts) {
+                if (p.inlineData && p.inlineData.data) {
+                  const mime = p.inlineData.mimeType || 'image/jpeg';
+                  return `data:${mime};base64,${p.inlineData.data}`;
+                }
+              }
+            }
+            throw new Error('No image part in Gemini response');
+          } catch (err) {
+            lastErr = err;
+            if (attempt === 0) {
+              await new Promise((r) => setTimeout(r, 450));
+            }
+          }
+        }
+        throw lastErr || new Error('Gemini image unavailable');
+      }
+
+      async function loadImageElement(src) {
+        const tryLoad = (url, useCors) =>
+          new Promise((resolve, reject) => {
+            const img = new Image();
+            if (useCors) img.crossOrigin = 'anonymous';
+            img.onload = () => resolve(img);
+            img.onerror = () => reject(new Error('Failed to load image'));
+            img.src = url;
+          });
+
+        if (!src) {
+          return await tryLoad(createStandbyPhotoDataUrl('PersonaForge'), false);
+        }
+        if (src.startsWith('data:') || src.startsWith('blob:')) {
+          return await tryLoad(src, false);
+        }
+
+        try {
+          const resp = await fetch(src);
+          if (resp.ok) {
+            const blob = await resp.blob();
+            const objUrl = URL.createObjectURL(blob);
+            try {
+              const loaded = await tryLoad(objUrl, false);
+              loaded._blobUrl = objUrl;
+              return loaded;
+            } catch (_e) {
+              URL.revokeObjectURL(objUrl);
+            }
+          }
+        } catch (_err) {}
+
+        try {
+          return await tryLoad(src, true);
+        } catch (_err) {
+          return await tryLoad(createStandbyPhotoDataUrl('Subject'), false);
+        }
+      }
+
+      function isImageUsable(img) {
+        if (!img || !img.naturalWidth || !img.naturalHeight) return false;
+        const src = String(img.currentSrc || img.src || '');
+        if (!src || src.startsWith('data:image/svg+xml')) return false;
+        return true;
+      }
+
+      /**
+       * Renders a complete, well-lit real-world environment backdrop with
+       * depth-of-field blur, atmospheric light gradients, and zero black voids.
+       */
+      function renderPhotographicBackdropLayer(ctx, W, H, sceneImg, backgroundKey, isNight) {
+        // Base sunlit/ambient environment fill so no region is ever a pitch-black void
+        const baseGrad = ctx.createLinearGradient(0, 0, 0, H);
+        if (isNight) {
+          baseGrad.addColorStop(0, '#1e293b');
+          baseGrad.addColorStop(0.55, '#3b2d54');
+          baseGrad.addColorStop(1, '#1e1b2e');
+        } else {
+          baseGrad.addColorStop(0, '#7dd3fc');
+          baseGrad.addColorStop(0.52, '#fde68a');
+          baseGrad.addColorStop(1, '#cbd5e1');
+        }
+        ctx.fillStyle = baseGrad;
+        ctx.fillRect(0, 0, W, H);
+
+        if (isImageUsable(sceneImg)) {
+          const sRatio = sceneImg.naturalWidth / sceneImg.naturalHeight;
+          const cRatio = W / H;
+          let drawW = W * 1.08;
+          let drawH = H * 1.08;
+          if (sRatio > cRatio) {
+            drawH = H * 1.08;
+            drawW = drawH * sRatio;
+          } else {
+            drawW = W * 1.08;
+            drawH = drawW / sRatio;
+          }
+
+          let offsetX = 0;
+          if (backgroundKey.toLowerCase().includes('car') || backgroundKey.toLowerCase().includes('vehicle')) {
+            offsetX = W * 0.04;
+          } else if (backgroundKey.toLowerCase().includes('tokyo')) {
+            offsetX = -W * 0.02;
+          }
+
+          ctx.save();
+          ctx.filter = 'blur(1.4px) brightness(1.04) contrast(1.06) saturate(1.1)';
+          ctx.drawImage(sceneImg, (W - drawW) / 2 + offsetX, (H - drawH) / 2, drawW, drawH);
+          ctx.restore();
+        } else {
+          // Photographic horizon & ground band fallback
+          const horizonY = H * 0.62;
+          ctx.fillStyle = isNight ? '#312e81' : '#94a3b8';
+          ctx.fillRect(0, horizonY, W, H - horizonY);
+        }
+
+        // Warm atmospheric light wash for depth integration
+        const wash = ctx.createLinearGradient(0, 0, W, H);
+        wash.addColorStop(0, 'rgba(255, 251, 235, 0.14)');
+        wash.addColorStop(0.5, 'rgba(255, 255, 255, 0.02)');
+        wash.addColorStop(1, 'rgba(15, 23, 42, 0.22)');
+        ctx.fillStyle = wash;
+        ctx.fillRect(0, 0, W, H);
+      }
+
+      /**
+       * Prepares a soft-feathered subject layer with optional outfit color/fabric
+       * styling so the person integrates smoothly into new poses and backdrops.
+       */
+      function buildFeatheredSubjectLayer(subjImg, outfitKey) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 640;
+        canvas.height = 800;
+        const ctx = canvas.getContext('2d');
+        const cw = canvas.width;
+        const ch = canvas.height;
+
+        if (isImageUsable(subjImg)) {
+          const ratio = subjImg.naturalWidth / subjImg.naturalHeight;
+          const boxRatio = cw / ch;
+          let dw = cw;
+          let dh = ch;
+          if (ratio > boxRatio) {
+            dh = ch;
+            dw = dh * ratio;
+          } else {
+            dw = cw;
+            dh = dw / ratio;
+          }
+          ctx.drawImage(subjImg, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
+        } else {
+          ctx.fillStyle = '#3f3f46';
+          ctx.fillRect(0, 0, cw, ch);
+        }
+
+        // Apply subtle outfit styling on lower/mid apparel region when selected
+        const outfitStyle = OUTFIT_STYLING[outfitKey];
+        if (outfitStyle) {
+          ctx.save();
+          const grad = ctx.createLinearGradient(0, ch * 0.36, 0, ch);
+          grad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+          grad.addColorStop(0.24, outfitStyle.tint);
+          grad.addColorStop(1, outfitStyle.accent);
+          ctx.globalCompositeOperation = 'source-atop';
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, ch * 0.36, cw, ch * 0.64);
+          ctx.restore();
+        }
+
+        // Feather edges so subject blends naturally without hard rectangular edges
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-in';
+        const mask = ctx.createRadialGradient(cw * 0.5, ch * 0.44, cw * 0.16, cw * 0.5, ch * 0.48, cw * 0.52);
+        mask.addColorStop(0, 'rgba(0, 0, 0, 1)');
+        mask.addColorStop(0.7, 'rgba(0, 0, 0, 0.95)');
+        mask.addColorStop(0.9, 'rgba(0, 0, 0, 0.35)');
+        mask.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = mask;
+        ctx.fillRect(0, 0, cw, ch);
+        ctx.restore();
+
+        return canvas;
+      }
+
+      /**
+       * Multi-layer scene + pose/framing + outfit integration compositor fallback.
+       */
+      async function composeRealisticRemixFallback(refUrl, remixOpts) {
+        const pose = remixOpts.pose || 'Leaning Against Car';
+        const background = remixOpts.background || 'Leaning by a Car / Parked Vehicle';
+        const outfit = remixOpts.outfit || 'Keep Reference Outfit';
+        const framing = remixOpts.framing || 'Medium Cowboy Shot';
+        const isNight = background.toLowerCase().includes('night');
+
+        const sceneUrl = pickPhotographicSceneUrl(remixOpts);
+        const [subjImg, sceneImg] = await Promise.all([
+          loadImageElement(refUrl),
+          loadImageElement(sceneUrl)
+        ]);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 720;
+        canvas.height = 900;
+        const ctx = canvas.getContext('2d');
+        const W = canvas.width;
+        const H = canvas.height;
+
+        // 1. Photographic environment backdrop
+        renderPhotographicBackdropLayer(ctx, W, H, sceneImg, background, isNight);
+
+        // 2. Feathered subject layer with outfit styling
+        const subjectCanvas = buildFeatheredSubjectLayer(subjImg, outfit);
+
+        // 3. Pose & framing spatial recomposition
+        let posX = W * 0.46;
+        let posY = H * 0.54;
+        let scale = 0.86;
+        let angle = 0;
+        let shear = 0;
+        let flip = false;
+
+        if (pose === 'Leaning Against Car') {
+          posX = W * 0.28;
+          posY = H * 0.56;
+          scale = 0.84;
+          angle = 0.055;
+          shear = 0.08;
+        } else if (pose === 'Casual Walking Pose') {
+          posX = W * 0.44;
+          posY = H * 0.55;
+          scale = 0.82;
+          angle = -0.03;
+          shear = -0.05;
+        } else if (pose === 'Sitting / Relaxed Stance') {
+          posX = W * 0.52;
+          posY = H * 0.61;
+          scale = 0.84;
+          angle = -0.02;
+          shear = 0.02;
+        } else if (pose === 'Looking Over Shoulder') {
+          posX = W * 0.55;
+          posY = H * 0.52;
+          scale = 0.9;
+          angle = -0.045;
+          shear = -0.03;
+          flip = true;
+        } else if (pose === 'Hands in Pockets / Confident') {
+          posX = W * 0.36;
+          posY = H * 0.54;
+          scale = 0.88;
+          angle = 0.015;
+          shear = 0.02;
+        }
+
+        if (framing === 'Close-Up Portrait') {
+          scale *= 1.18;
+          posY -= H * 0.03;
+        } else if (framing === 'Full Body Shot') {
+          scale *= 0.72;
+          posY += H * 0.04;
+        } else if (framing === 'Low Angle Hero') {
+          scale *= 0.94;
+          posY -= H * 0.02;
+          angle -= 0.015;
+        } else if (framing === 'Over-the-Shoulder') {
+          scale *= 1.04;
+          posX = W * 0.6;
+        }
+
+        const drawW = 440 * scale;
+        const drawH = 550 * scale;
+
+        // 4. Grounded contact shadow beneath the subject
+        const shadowY = Math.min(H * 0.91, posY + drawH * 0.44);
+        const shadowGrad = ctx.createRadialGradient(posX, shadowY, 8, posX, shadowY, drawW * 0.35);
+        shadowGrad.addColorStop(0, 'rgba(15, 23, 42, 0.52)');
+        shadowGrad.addColorStop(0.65, 'rgba(15, 23, 42, 0.20)');
+        shadowGrad.addColorStop(1, 'rgba(15, 23, 42, 0)');
+        ctx.save();
+        ctx.fillStyle = shadowGrad;
+        ctx.beginPath();
+        ctx.ellipse(posX, shadowY, drawW * 0.35, drawH * 0.05, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // 5. Repositioned subject + environmental light wrap
+        ctx.save();
+        ctx.translate(posX, posY);
+        ctx.transform(1, 0, shear, 1, 0, 0);
+        ctx.rotate(angle);
+        if (flip) ctx.scale(-1, 1);
+        ctx.drawImage(subjectCanvas, -drawW / 2, -drawH / 2, drawW, drawH);
+
+        const wrapGrad = ctx.createLinearGradient(-drawW / 2, -drawH / 2, drawW / 2, drawH / 2);
+        wrapGrad.addColorStop(0, 'rgba(254, 240, 138, 0.16)');
+        wrapGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0)');
+        wrapGrad.addColorStop(1, 'rgba(251, 113, 133, 0.12)');
+        ctx.globalCompositeOperation = 'screen';
+        ctx.fillStyle = wrapGrad;
+        ctx.fillRect(-drawW / 2, -drawH / 2, drawW, drawH);
+        ctx.restore();
+
+        // Subtle photographic grain
+        ctx.save();
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
+        for (let i = 0; i < 500; i++) {
+          const gx = (i * 193) % W;
+          const gy = (i * 307) % H;
+          ctx.fillRect(gx, gy, 2, 2);
+        }
+        ctx.restore();
+
+        if (subjImg._blobUrl) {
+          try { URL.revokeObjectURL(subjImg._blobUrl); } catch (_e) {}
+        }
+        if (sceneImg._blobUrl) {
+          try { URL.revokeObjectURL(sceneImg._blobUrl); } catch (_e) {}
+        }
+
+        return canvas.toDataURL('image/jpeg', 0.92);
+      }
+
+      // =========================================================================
+      // 6. HTML5 CANVAS + MEDIARECORDER VIDEO CLIP SYNTHESIS
+      // =========================================================================
+      function parseDurationSeconds(durationFpsStr) {
+        const match = String(durationFpsStr || '').match(/(\d+)\s*s/);
+        const sec = match ? parseInt(match[1], 10) : 4;
+        return Math.min(8, Math.max(2, sec));
+      }
+
+      function parseFps(durationFpsStr) {
+        const match = String(durationFpsStr || '').match(/(\d+)\s*fps/);
+        const fps = match ? parseInt(match[1], 10) : 24;
+        return Math.min(60, Math.max(15, fps));
+      }
+
+      function getDimensionsForAspect(aspect) {
+        switch (aspect) {
+          case '16:9':
+            return { width: 960, height: 540 };
+          case '1:1':
+            return { width: 720, height: 720 };
+          case '4:5':
+            return { width: 720, height: 900 };
+          case '9:16':
+          default:
+            return { width: 540, height: 960 };
+        }
+      }
+
+      async function synthesizeVideoClip(sourcePhotoUrl, videoOpts) {
+        const dims = getDimensionsForAspect(videoOpts.aspectRatio);
+        const durationSec = parseDurationSeconds(videoOpts.durationFps);
+        const fps = parseFps(videoOpts.durationFps);
+        const totalFrames = durationSec * fps;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = dims.width;
+        canvas.height = dims.height;
+        const ctx = canvas.getContext('2d');
+
+        const baseImg = await loadImageElement(sourcePhotoUrl);
+        const W = canvas.width;
+        const H = canvas.height;
+
+        const canRecord =
+          typeof canvas.captureStream === 'function' &&
+          typeof MediaRecorder !== 'undefined';
+
+        if (!canRecord) {
+          // Static high-res poster fallback if MediaRecorder is unsupported in browser
+          ctx.drawImage(baseImg, 0, 0, W, H);
+          if (baseImg._blobUrl) {
+            try { URL.revokeObjectURL(baseImg._blobUrl); } catch (_e) {}
+          }
+          return canvas.toDataURL('image/jpeg', 0.92);
+        }
+
+        const stream = canvas.captureStream(fps);
+        const mimeTypes = [
+          'video/webm;codecs=vp9',
+          'video/webm;codecs=vp8',
+          'video/webm'
+        ];
+        const chosenMime = mimeTypes.find((m) => MediaRecorder.isTypeSupported(m)) || '';
+        const recorder = chosenMime
+          ? new MediaRecorder(stream, { mimeType: chosenMime })
+          : new MediaRecorder(stream);
+
+        const chunks = [];
+        recorder.ondataavailable = (ev) => {
+          if (ev.data && ev.data.size > 0) chunks.push(ev.data);
+        };
+
+        const recordingDone = new Promise((resolve) => {
+          recorder.onstop = () => {
+            const blob = new Blob(chunks, { type: chosenMime || 'video/webm' });
+            resolve(URL.createObjectURL(blob));
+          };
+        });
+
+        recorder.start();
+
+        const moveKey = (videoOpts.cameraMove || '').toLowerCase();
+        const motionKey = (videoOpts.motion || '').toLowerCase();
+
+        for (let frame = 0; frame < totalFrames; frame++) {
+          const t = frame / Math.max(1, totalFrames - 1);
+          const phase = t * Math.PI * 2;
+
+          let zoom = 1.08 + t * 0.04;
+          let panX = Math.sin(phase) * (W * 0.025);
+          let panY = Math.cos(phase) * (H * 0.015);
+          let tilt = Math.sin(phase) * 0.015;
+
+          if (moveKey.includes('push-in')) {
+            zoom = 1.05 + t * 0.14;
+          } else if (moveKey.includes('tracking') || moveKey.includes('walk')) {
+            panX = (t - 0.5) * W * 0.07;
+            panY = Math.abs(Math.sin(phase * 2)) * -8;
+          } else if (moveKey.includes('orbit')) {
+            panX = Math.sin(phase) * W * 0.05;
+            tilt = Math.sin(phase) * 0.025;
+          } else if (moveKey.includes('tripod')) {
+            zoom = 1.06;
+            panX = 0;
+            panY = 0;
+            tilt = 0;
+          }
+
+          if (motionKey.includes('head turn') || motionKey.includes('shoulder')) {
+            tilt += Math.sin(phase) * 0.022;
+          } else if (motionKey.includes('wind') || motionKey.includes('hair')) {
+            panX += Math.sin(phase * 1.5) * 6;
+          }
+
+          ctx.fillStyle = '#0c0c10';
+          ctx.fillRect(0, 0, W, H);
+
+          if (isImageUsable(baseImg)) {
+            const ratio = baseImg.naturalWidth / baseImg.naturalHeight;
+            const boxRatio = W / H;
+            let dw = W * zoom;
+            let dh = H * zoom;
+            if (ratio > boxRatio) {
+              dh = H * zoom;
+              dw = dh * ratio;
+            } else {
+              dw = W * zoom;
+              dh = dw / ratio;
+            }
+
+            ctx.save();
+            ctx.translate(W / 2 + panX, H / 2 + panY);
+            ctx.rotate(tilt);
+            ctx.drawImage(baseImg, -dw / 2, -dh / 2, dw, dh);
+            ctx.restore();
+          }
+
+          // Subtle cinematic warm light drift
+          const glow = ctx.createRadialGradient(
+            W * (0.7 + Math.cos(phase) * 0.1),
+            H * 0.25,
+            10,
+            W * 0.5,
+            H * 0.5,
+            W * 0.8
+          );
+          glow.addColorStop(0, 'rgba(251, 191, 36, 0.12)');
+          glow.addColorStop(1, 'rgba(0, 0, 0, 0.14)');
+          ctx.fillStyle = glow;
+          ctx.fillRect(0, 0, W, H);
+
+          await new Promise((r) => setTimeout(r, Math.max(12, Math.floor(1000 / fps))));
+        }
+
+        recorder.stop();
+        if (baseImg._blobUrl) {
+          try { URL.revokeObjectURL(baseImg._blobUrl); } catch (_e) {}
+        }
+        return await recordingDone;
+      }
+
+      // =========================================================================
+      // 7. GENERATION WORKFLOW & SAVED MODELS MANAGEMENT
+      // =========================================================================
+      function setLoadingState(active, titleText = '', detailText = '') {
+        state.isGenerating = active;
+        if (dom.loadingOverlay) {
+          dom.loadingOverlay.classList.toggle('hidden', !active);
+          dom.loadingOverlay.classList.toggle('flex', active);
+        }
+        if (titleText && dom.loadingTitle) dom.loadingTitle.textContent = titleText;
+        if (detailText && dom.loadingDetail) dom.loadingDetail.textContent = detailText;
+        if (dom.generateBtn) dom.generateBtn.disabled = active;
+      }
+
+      async function handleGenerate() {
+        if (state.isGenerating) return;
+
+        const cost = getCurrentCost();
+        if (state.credits < cost) {
+          showToast('Not enough credits! Click "+ Refill" in the top bar.', 'error');
+          return;
+        }
+
+        const promptText = compilePrompt();
+        refreshPromptDisplay();
+
+        if (state.mode === 'photo') {
+          setLoadingState(
+            true,
+            'Synthesizing Photorealistic Portrait...',
+            'Calling Gemini image engine with realistic skin & lens detail'
+          );
+          saveCredits(state.credits - cost);
+
+          try {
+            let finalUrl = '';
+            try {
+              finalUrl = await callGeminiImageModel(promptText, null);
+            } catch (_apiErr) {
+              finalUrl = pickFallbackPortraitUrl(state.selections.subject);
+            }
+
+            state.currentPhotoUrl = finalUrl;
+            state.currentMediaType = 'photo';
+            state.lastWasRemix = false;
+            if (!state.referenceSubject) {
+              state.referenceSubject = {
+                name: (dom.modelNameInput && dom.modelNameInput.value.trim()) || 'Generated Persona',
+                imageUrl: finalUrl,
+                summary: buildSubjectSummary()
+              };
+            }
+            syncReferenceSubjectUI();
+            syncMediaStageDisplay();
+            dom.previewStatusText.textContent = `Rendered ${state.selections.subject} • ${state.selections.camera}`;
+            showToast('Portrait generated!', 'success');
+          } catch (err) {
+            state.currentPhotoUrl = pickFallbackPortraitUrl(state.selections.subject);
+            state.currentMediaType = 'photo';
+            state.lastWasRemix = false;
+            syncMediaStageDisplay();
+            showToast('Rendered portrait via studio fallback', 'info');
+          } finally {
+            setLoadingState(false);
+          }
+          return;
+        }
+
+        if (state.mode === 'remix') {
+          const refUrl =
+            (state.referenceSubject && state.referenceSubject.imageUrl) ||
+            state.currentPhotoUrl ||
+            pickFallbackPortraitUrl(state.selections.subject);
+
+          setLoadingState(
+            true,
+            'Composing Pose & Scene...',
+            'Preserving identity while integrating new pose, outfit & environment'
+          );
+          saveCredits(state.credits - cost);
+
+          try {
+            let remixedUrl = '';
+            try {
+              remixedUrl = await callGeminiImageModel(promptText, refUrl);
+            } catch (_apiErr) {
+              remixedUrl = await composeRealisticRemixFallback(refUrl, state.remixSelections);
+            }
+
+            state.currentPhotoUrl = remixedUrl;
+            state.currentMediaType = 'photo';
+            state.lastWasRemix = true;
+            syncMediaStageDisplay();
+            dom.previewStatusText.textContent = `${state.remixSelections.pose} • ${state.remixSelections.background}`;
+            showToast('Remix pose & scene ready!', 'success');
+          } catch (_err) {
+            state.currentPhotoUrl = await composeRealisticRemixFallback(refUrl, state.remixSelections);
+            state.currentMediaType = 'photo';
+            state.lastWasRemix = true;
+            syncMediaStageDisplay();
+            showToast('Composed scene with studio fallback', 'info');
+          } finally {
+            setLoadingState(false);
+          }
+          return;
+        }
+
+        if (state.mode === 'video') {
+          const sourcePhoto =
+            state.currentPhotoUrl ||
+            (state.referenceSubject && state.referenceSubject.imageUrl) ||
+            pickFallbackPortraitUrl(state.selections.subject);
+
+          if (!state.currentPhotoUrl) {
+            state.currentPhotoUrl = sourcePhoto;
+          }
+
+          setLoadingState(
+            true,
+            'Rendering AI Video Clip...',
+            `Synthesizing ${state.videoSelections.durationFps} motion & camera rig`
+          );
+          saveCredits(state.credits - cost);
+
+          try {
+            const videoUrl = await synthesizeVideoClip(sourcePhoto, state.videoSelections);
+            if (videoUrl && videoUrl.startsWith('blob:')) {
+              state.currentVideoUrl = videoUrl;
+              state.currentMediaType = 'video';
+              syncMediaStageDisplay();
+              try {
+                await dom.previewVideo.play();
+              } catch (_playErr) {}
+              dom.previewStatusText.textContent = `Clip • ${state.videoSelections.motion}`;
+              showToast('Video clip generated!', 'success');
+            } else {
+              state.currentPhotoUrl = videoUrl || sourcePhoto;
+              state.currentMediaType = 'photo';
+              syncMediaStageDisplay();
+              showToast('Rendered motion still frame', 'info');
+            }
+          } catch (_err) {
+            state.currentPhotoUrl = sourcePhoto;
+            state.currentMediaType = 'photo';
+            syncMediaStageDisplay();
+            showToast('Displayed source frame for preview', 'info');
+          } finally {
+            setLoadingState(false);
+          }
+        }
+      }
+
+      function handleSaveModel() {
+        const rawName = (dom.modelNameInput && dom.modelNameInput.value.trim()) || '';
+        const name = rawName || `Persona ${state.savedModels.length + 1}`;
+        const hasVideo = state.currentMediaType === 'video' && Boolean(state.currentVideoUrl);
+        const imageUrl = state.currentPhotoUrl || pickFallbackPortraitUrl(state.selections.subject);
+
+        const entry = {
+          id: 'pf_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+          name,
+          mediaType: hasVideo ? 'video' : 'photo',
+          imageUrl,
+          videoUrl: hasVideo ? state.currentVideoUrl : '',
+          summary: buildSubjectSummary(),
+          prompt: compilePrompt(),
+          selections: { ...state.selections },
+          remixSelections: { ...state.remixSelections },
+          videoSelections: { ...state.videoSelections },
+          createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+
+        state.savedModels.unshift(entry);
+        persistSavedModels();
+
+        if (!state.referenceSubject && entry.imageUrl) {
+          state.referenceSubject = {
+            id: entry.id,
+            name: entry.name,
+            imageUrl: entry.imageUrl,
+            summary: entry.summary
+          };
+          syncReferenceSubjectUI();
+        }
+
+        showToast(`Saved "${name}" to library`, 'success');
+      }
+
+      function renderSavedModelsModalList() {
+        if (!dom.savedModelsList) return;
+        if (state.savedModels.length === 0) {
+          dom.savedModelsList.innerHTML = `
+            <div class="rounded-2xl border border-dashed border-white/15 bg-surface/50 p-6 text-center">
+              <p class="text-sm font-semibold text-zinc-300">No saved models yet</p>
+              <p class="mt-1 text-xs text-zinc-500">Generate a portrait, remix, or video clip and click "Save Model".</p>
+            </div>
+          `;
+          return;
+        }
+
+        dom.savedModelsList.innerHTML = '';
+        state.savedModels.forEach((item) => {
+          const card = document.createElement('div');
+          card.className = 'rounded-2xl border border-white/10 bg-surface p-3 shadow-md';
+          const badgeHtml =
+            item.mediaType === 'video'
+              ? '<span class="rounded bg-coralPink/20 px-1.5 py-0.5 text-[10px] font-bold text-roseGlow">VIDEO</span>'
+              : '<span class="rounded bg-amberGold/20 px-1.5 py-0.5 text-[10px] font-bold text-amberWarm">PHOTO</span>';
+
+          card.innerHTML = `
+            <div class="flex gap-3">
+              <img src="${item.imageUrl}" alt="${escapeXml(item.name)}" class="h-20 w-16 shrink-0 rounded-xl object-cover bg-obsidian" />
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center justify-between gap-2">
+                  <h4 class="truncate text-sm font-bold text-white">${escapeXml(item.name)}</h4>
+                  ${badgeHtml}
+                </div>
+                <p class="mt-0.5 line-clamp-2 text-[11px] text-zinc-400">${escapeXml(item.summary || '')}</p>
+                <div class="mt-2.5 flex flex-wrap gap-1.5">
+                  <button data-action="load" type="button" class="rounded-lg border border-white/15 bg-obsidian px-2.5 py-1 text-[11px] font-semibold text-zinc-100 hover:border-amberWarm/50">Load</button>
+                  <button data-action="remix" type="button" class="rounded-lg border border-amberGold/35 bg-amberGold/15 px-2.5 py-1 text-[11px] font-semibold text-amberWarm hover:bg-amberGold/25">Remix Pose/Scene</button>
+                  <button data-action="delete" type="button" class="rounded-lg border border-roseGlow/30 bg-roseGlow/10 px-2.5 py-1 text-[11px] font-semibold text-roseGlow hover:bg-roseGlow/20">Delete</button>
+                </div>
+              </div>
+            </div>
+          `;
+
+          card.querySelector('[data-action="load"]').addEventListener('click', () => {
+            if (item.selections) state.selections = { ...createDefaultPhotoSelections(), ...item.selections };
+            if (item.remixSelections) state.remixSelections = { ...createDefaultRemixSelections(), ...item.remixSelections };
+            if (item.videoSelections) state.videoSelections = { ...createDefaultVideoSelections(), ...item.videoSelections };
+            if (dom.modelNameInput) dom.modelNameInput.value = item.name;
+            state.currentPhotoUrl = item.imageUrl || '';
+            state.currentVideoUrl = item.videoUrl || '';
+            state.currentMediaType = item.mediaType === 'video' && item.videoUrl ? 'video' : 'photo';
+            state.lastWasRemix = false;
+            renderPhotoGroups();
+            renderRemixGroups();
+            renderVideoGroups();
+            syncMediaStageDisplay();
+            refreshPromptDisplay();
+            closeSavedModal();
+            showToast(`Loaded "${item.name}"`, 'success');
+          });
+
+          card.querySelector('[data-action="remix"]').addEventListener('click', () => {
+            state.referenceSubject = {
+              id: item.id,
+              name: item.name,
+              imageUrl: item.imageUrl,
+              summary: item.summary || buildSubjectSummary()
+            };
+            if (item.selections) {
+              state.selections = { ...createDefaultPhotoSelections(), ...item.selections };
+            }
+            state.currentPhotoUrl = item.imageUrl || state.currentPhotoUrl;
+            state.currentMediaType = 'photo';
+            if (dom.modelNameInput) dom.modelNameInput.value = `${item.name} Remix`;
+            renderPhotoGroups();
+            syncReferenceSubjectUI();
+            syncMediaStageDisplay();
+            setStudioMode('remix');
+            closeSavedModal();
+            showToast(`Locked "${item.name}" for Remix Pose & Scene`, 'success');
+          });
+
+          card.querySelector('[data-action="delete"]').addEventListener('click', () => {
+            state.savedModels = state.savedModels.filter((m) => m.id !== item.id);
+            persistSavedModels();
+            showToast(`Deleted "${item.name}"`, 'info');
+          });
+
+          dom.savedModelsList.appendChild(card);
+        });
+      }
+
+      function openSavedModal() {
+        renderSavedModelsModalList();
+        if (dom.savedModelsModal) {
+          dom.savedModelsModal.classList.remove('hidden');
+          dom.savedModelsModal.classList.add('flex');
+        }
+      }
+
+      function closeSavedModal() {
+        if (dom.savedModelsModal) {
+          dom.savedModelsModal.classList.add('hidden');
+          dom.savedModelsModal.classList.remove('flex');
+        }
+      }
+
+      // =========================================================================
+      // 8. PRESET, RESET, DOWNLOAD, COPY & EVENT WIRING
+      // =========================================================================
+      function applyBeachCarPreset() {
+        state.selections = {
+          subject: 'Woman',
+          age: 'Early 20s',
+          look: 'Latina/o',
+          hair: 'Sun-kissed blonde',
+          eyes: 'Hazel',
+          build: 'Athletic',
+          expression: 'Warm candid smile',
+          style: 'Beachwear',
+          vibe: 'Girl-next-door',
+          camera: '85mm f/1.4 Golden Hour'
+        };
+        state.remixSelections = {
+          lockStrength: 'Natural Angle Shift',
+          pose: 'Leaning Against Car',
+          background: 'Leaning by a Car / Parked Vehicle',
+          outfit: 'Beachwear / Resort',
+          vehicle: 'Classic Convertible',
+          framing: 'Medium Cowboy Shot'
+        };
+        state.portraitDetail = 'sunlit beach car selfie after a coastal afternoon';
+        if (dom.customPortraitDetail) dom.customPortraitDetail.value = state.portraitDetail;
+        if (dom.modelNameInput) dom.modelNameInput.value = 'Maya Beach Car';
+        renderPhotoGroups();
+        renderRemixGroups();
+        refreshPromptDisplay();
+        showToast('Applied "Beach Car Selfie" preset', 'success');
+      }
+
+      function resetAllStudio() {
+        state.selections = createDefaultPhotoSelections();
+        state.remixSelections = createDefaultRemixSelections();
+        state.videoSelections = createDefaultVideoSelections();
+        state.portraitDetail = '';
+        state.remixDirection = '';
+        state.videoDirection = '';
+        if (dom.customPortraitDetail) dom.customPortraitDetail.value = '';
+        if (dom.customRemixDirection) dom.customRemixDirection.value = '';
+        if (dom.customVideoDirection) dom.customVideoDirection.value = '';
+        if (dom.modelNameInput) dom.modelNameInput.value = 'Elena Coastline';
+        renderPhotoGroups();
+        renderRemixGroups();
+        renderVideoGroups();
+        refreshPromptDisplay();
+        showToast('Reset studio settings to defaults', 'info');
+      }
+
+      function handleDownloadMedia() {
+        if (state.currentMediaType === 'video' && state.currentVideoUrl) {
+          const link = document.createElement('a');
+          link.href = state.currentVideoUrl;
+          link.download = `${(dom.modelNameInput.value || 'personaforge-clip').trim().replace(/\s+/g, '-').toLowerCase()}.webm`;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          showToast('Downloading video clip...', 'success');
+          return;
+        }
+
+        const imgSrc = state.currentPhotoUrl || dom.previewImage.src;
+        if (!imgSrc || imgSrc.startsWith('data:image/svg+xml')) {
+          showToast('Generate a portrait or remix first to download', 'info');
+          return;
+        }
+        const link = document.createElement('a');
+        link.href = imgSrc;
+        link.download = `${(dom.modelNameInput.value || 'personaforge-portrait').trim().replace(/\s+/g, '-').toLowerCase()}.jpg`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        showToast('Downloading image...', 'success');
+      }
+
+      function handleCopyPrompt() {
+        const text = (dom.promptOutputText && dom.promptOutputText.textContent) || compilePrompt();
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(
+              () => showToast('Prompt copied to clipboard', 'success'),
+              () => fallbackCopyText(text)
+            );
+          } else {
+            fallbackCopyText(text);
+          }
+        } catch (_err) {
+          fallbackCopyText(text);
+        }
+      }
+
+      function fallbackCopyText(text) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          document.execCommand('copy');
+          showToast('Prompt copied to clipboard', 'success');
+        } catch (_e) {
+          showToast('Unable to copy prompt automatically', 'error');
+        }
+        ta.remove();
+      }
+
+      function handleReferenceUpload(event) {
+        const file = event.target && event.target.files && event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          const dataUrl = String(reader.result || '');
+          if (!dataUrl) return;
+          state.referenceSubject = {
+            id: 'upload_' + Date.now(),
+            name: file.name.replace(/\.[^/.]+$/, '') || 'Uploaded Subject',
+            imageUrl: dataUrl,
+            summary: 'Uploaded reference photo for identity-preserving remix'
+          };
+          if (!state.currentPhotoUrl) {
+            state.currentPhotoUrl = dataUrl;
+            state.currentMediaType = 'photo';
+            syncMediaStageDisplay();
+          }
+          syncReferenceSubjectUI();
+          refreshPromptDisplay();
+          showToast(`Uploaded reference: ${state.referenceSubject.name}`, 'success');
+        };
+        reader.readAsDataURL(file);
+        event.target.value = '';
+      }
+
+      function bindEvents() {
+        dom.modeBtns.forEach((btn) => {
+          btn.addEventListener('click', () => setStudioMode(btn.dataset.mode));
+        });
+
+        if (dom.customPortraitDetail) {
+          dom.customPortraitDetail.addEventListener('input', (e) => {
+            state.portraitDetail = e.target.value;
+            refreshPromptDisplay();
+          });
+        }
+        if (dom.customRemixDirection) {
+          dom.customRemixDirection.addEventListener('input', (e) => {
+            state.remixDirection = e.target.value;
+            refreshPromptDisplay();
+          });
+        }
+        if (dom.customVideoDirection) {
+          dom.customVideoDirection.addEventListener('input', (e) => {
+            state.videoDirection = e.target.value;
+            refreshPromptDisplay();
+          });
+        }
+
+        if (dom.referenceFileInput) {
+          dom.referenceFileInput.addEventListener('change', handleReferenceUpload);
+        }
+
+        if (dom.generateBtn) {
+          dom.generateBtn.addEventListener('click', handleGenerate);
+        }
+        if (dom.saveModelBtn) {
+          dom.saveModelBtn.addEventListener('click', handleSaveModel);
+        }
+        if (dom.presetBeachCarBtn) {
+          dom.presetBeachCarBtn.addEventListener('click', applyBeachCarPreset);
+        }
+        if (dom.resetAllBtn) {
+          dom.resetAllBtn.addEventListener('click', resetAllStudio);
+        }
+        if (dom.refillCreditsBtn) {
+          dom.refillCreditsBtn.addEventListener('click', () => {
+            saveCredits(state.credits + 60);
+            showToast('Added +60 studio credits!', 'success');
+          });
+        }
+
+        if (dom.openSavedBtn) dom.openSavedBtn.addEventListener('click', openSavedModal);
+        if (dom.closeSavedBtn) dom.closeSavedBtn.addEventListener('click', closeSavedModal);
+        if (dom.savedModelsBackdrop) dom.savedModelsBackdrop.addEventListener('click', closeSavedModal);
+
+        if (dom.downloadMediaBtn) dom.downloadMediaBtn.addEventListener('click', handleDownloadMedia);
+        if (dom.copyPromptBtn) dom.copyPromptBtn.addEventListener('click', handleCopyPrompt);
+
+        if (dom.remixCurrentBtn) {
+          dom.remixCurrentBtn.addEventListener('click', () => {
+            const activeImg = state.currentPhotoUrl || pickFallbackPortraitUrl(state.selections.subject);
+            state.referenceSubject = {
+              id: 'stage_' + Date.now(),
+              name: (dom.modelNameInput && dom.modelNameInput.value.trim()) || 'Current Subject',
+              imageUrl: activeImg,
+              summary: buildSubjectSummary()
+            };
+            syncReferenceSubjectUI();
+            setStudioMode('remix');
+            showToast('Switched to Remix Pose & Scene with current subject', 'info');
+          });
+        }
+
+        if (dom.animateCurrentBtn) {
+          dom.animateCurrentBtn.addEventListener('click', () => {
+            if (!state.currentPhotoUrl) {
+              state.currentPhotoUrl = pickFallbackPortraitUrl(state.selections.subject);
+            }
+            setStudioMode('video');
+            handleGenerate();
+          });
+        }
+
+        if (dom.toggleCompareBtn) {
+          dom.toggleCompareBtn.addEventListener('click', () => {
+            state.compareVisible = !state.compareVisible;
+            syncReferenceSubjectUI();
+            dom.toggleCompareBtn.classList.toggle('pill-active', state.compareVisible);
+          });
+        }
+      }
+
+      // =========================================================================
+      // 9. INITIALIZATION
+      // =========================================================================
+      function initStudio() {
+        saveCredits(state.credits);
+        state.currentPhotoUrl = pickFallbackPortraitUrl(state.selections.subject);
+        state.referenceSubject = {
+          id: 'initial_subject',
+          name: (dom.modelNameInput && dom.modelNameInput.value.trim()) || 'Elena Coastline',
+          imageUrl: state.currentPhotoUrl,
+          summary: buildSubjectSummary()
+        };
+
+        renderPhotoGroups();
+        renderRemixGroups();
+        renderVideoGroups();
+        updateSavedCountUI();
+        syncReferenceSubjectUI();
+        syncMediaStageDisplay();
+        refreshPromptDisplay();
+        bindEvents();
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initStudio);
+      } else {
+        initStudio();
+      }
+    })();
+  </script>
+</body>
+</html>
